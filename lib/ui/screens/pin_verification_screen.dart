@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:pin_code_fields/pin_code_fields.dart';
-import 'package:taskmanager_flutter/data/network_caller/network_caller.dart';
-import 'package:taskmanager_flutter/data/network_caller/network_response.dart';
-import 'package:taskmanager_flutter/data/utility/urls.dart';
+import 'package:taskmanager_flutter/ui/controllers/pin_verification_controller.dart';
 import 'package:taskmanager_flutter/ui/screens/login_screen.dart';
 import 'package:taskmanager_flutter/ui/screens/reset_password_screen.dart';
 import 'package:taskmanager_flutter/ui/widgets/body_background.dart';
@@ -20,40 +19,8 @@ class PinVerificationScreen extends StatefulWidget {
 class _PinVerificationScreenState extends State<PinVerificationScreen> {
   final TextEditingController _otpTEController = TextEditingController();
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
+  final _pinVerificationController = Get.find<PinVerificationController>();
   bool recoverVerifyOTP = false;
-
-  Future<void> recoverVerityOTP(String otp) async {
-    recoverVerifyOTP = true;
-    if (mounted) {
-      setState(() {});
-    }
-    final NetworkResponse response = await NetworkCaller()
-        .getRequest(Urls.recoverVerifyOTP(widget.email, otp));
-
-    if (response.isSuccess) {
-      if (response.jsonResponse['status'] == 'success') {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => ResetPasswordScreen(
-              email: widget.email,
-              otp: otp,
-            ),
-          ),
-        );
-      } else {
-        if (mounted) {
-          showSnackMessage(context, 'OTP is not correct');
-        }
-      }
-    } else {
-      Navigator.push(
-          context,
-          MaterialPageRoute(
-              builder: (context) =>
-                  PinVerificationScreen(email: widget.email)));
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -108,13 +75,20 @@ class _PinVerificationScreenState extends State<PinVerificationScreen> {
                     const SizedBox(height: 16),
                     SizedBox(
                       width: double.infinity,
-                      child: ElevatedButton(
-                        onPressed: () {
-                          if (_formKey.currentState!.validate()) {
-                            recoverVerityOTP(_otpTEController.text.trim());
-                          }
-                        },
-                        child: const Text('Verify'),
+                      child: Visibility(
+                        visible: _pinVerificationController.recoverVerifyOTP ==
+                            false,
+                        replacement: const Center(
+                          child: CircularProgressIndicator(),
+                        ),
+                        child: ElevatedButton(
+                          onPressed: () {
+                            if (_formKey.currentState!.validate()) {
+                              recoverVerityOTP(_otpTEController.text.trim());
+                            }
+                          },
+                          child: const Text('Verify'),
+                        ),
                       ),
                     ),
                     const SizedBox(height: 48),
@@ -153,6 +127,19 @@ class _PinVerificationScreenState extends State<PinVerificationScreen> {
         ),
       ),
     );
+  }
+
+  Future<void> recoverVerityOTP(String otp) async {
+    final response =
+        await _pinVerificationController.recoverVerityOTP(otp, widget.email);
+
+    if (response) {
+      Get.to(ResetPasswordScreen(email: widget.email, otp: otp));
+    } else {
+      if (mounted) {
+        showSnackMessage(context, 'Incorrect OTP, enter correct OTP');
+      }
+    }
   }
 
   @override

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:taskmanager_flutter/data/network_caller/network_caller.dart';
-import 'package:taskmanager_flutter/data/network_caller/network_response.dart';
-import 'package:taskmanager_flutter/data/utility/urls.dart';
+import 'package:get/get.dart';
+import 'package:taskmanager_flutter/ui/controllers/sign_up_controller.dart';
 import 'package:taskmanager_flutter/ui/screens/login_screen.dart';
 import 'package:taskmanager_flutter/ui/widgets/body_background.dart';
 import 'package:taskmanager_flutter/ui/widgets/snack_message.dart';
@@ -20,7 +19,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
   final TextEditingController _mobileTEController = TextEditingController();
   final TextEditingController _passwordTEController = TextEditingController();
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
-  bool _signUpInProgress = false;
+  final _signUpController = Get.find<SignUpController>();
 
   @override
   Widget build(BuildContext context) {
@@ -127,7 +126,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                     SizedBox(
                       width: double.infinity,
                       child: Visibility(
-                        visible: _signUpInProgress == false,
+                        visible: _signUpController.signUpInProgress == false,
                         replacement: const Center(
                           child: CircularProgressIndicator(),
                         ),
@@ -190,42 +189,30 @@ class _SignUpScreenState extends State<SignUpScreen> {
   }
 
   Future<void> signUp() async {
-    if (_formKey.currentState!.validate()) {
-      _signUpInProgress = true;
+    if (!_formKey.currentState!.validate()) {
+      return;
+    }
+    final response = await _signUpController.signUp(
+      _emailTEController.text.trim(),
+      _firstNameTEController.text.trim(),
+      _lastNameTEController.text.trim(),
+      _mobileTEController.text.trim(),
+      _passwordTEController.text,
+    );
+    if (response) {
+      _clearText();
       if (mounted) {
-        setState(() {});
+        showSnackMessage(
+            context, 'Account has been created successful. Please log in');
       }
-      final NetworkResponse response =
-          await NetworkCaller().postRequest(Urls.registration, body: {
-        "email": _emailTEController.text.trim(),
-        "firstName": _firstNameTEController.text.trim(),
-        "lastName": _lastNameTEController.text.trim(),
-        "mobile": _mobileTEController.text.trim(),
-        "password": _passwordTEController.text,
-        "photo": ""
-      });
-      _signUpInProgress = false;
+      Get.offAll(const LoginScreen());
+    } else {
       if (mounted) {
-        setState(() {});
-      }
-      if (response.isSuccess) {
-        _clearText();
-        if (mounted) {
-          showSnackMessage(
-              context, 'Account has been created successful. Please log in');
-        }
-        Navigator.pushAndRemoveUntil(
-            context,
-            MaterialPageRoute(builder: (context) => const LoginScreen()),
-            (route) => false);
-      } else {
-        if (mounted) {
-          showSnackMessage(
-            context,
-            'Account creation failed. Try Again',
-            true,
-          );
-        }
+        showSnackMessage(
+          context,
+          'Account creation failed. Try Again',
+          true,
+        );
       }
     }
   }

@@ -1,13 +1,9 @@
-import 'dart:math';
-
 import 'package:flutter/material.dart';
-import 'package:taskmanager_flutter/data/network_caller/network_caller.dart';
-import 'package:taskmanager_flutter/data/network_caller/network_response.dart';
-import 'package:taskmanager_flutter/data/utility/urls.dart';
+import 'package:get/get.dart';
+import 'package:taskmanager_flutter/ui/controllers/forgot_password_controller.dart';
 import 'package:taskmanager_flutter/ui/screens/login_screen.dart';
 import 'package:taskmanager_flutter/ui/screens/pin_verification_screen.dart';
 import 'package:taskmanager_flutter/ui/widgets/body_background.dart';
-import 'package:taskmanager_flutter/ui/widgets/snack_message.dart';
 
 //todo-RecoverVerifyEmail integration
 //todo-completed
@@ -20,45 +16,10 @@ class ForgotPasswordScreen extends StatefulWidget {
 }
 
 class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
+  bool recoverVerifyEmailInProgress = false;
   final TextEditingController _emailTEController = TextEditingController();
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
-  bool recoverVerifyEmailInProgress = false;
-
-  Future<void> recoverVerifyEmail(String email) async {
-    recoverVerifyEmailInProgress = true;
-    if (mounted) {
-      setState(() {});
-    }
-    final NetworkResponse response =
-        await NetworkCaller().getRequest(Urls.recoverVerifyEmail(email));
-    if (response.isSuccess) {
-      if (response.jsonResponse['status'] == 'success') {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => PinVerificationScreen(
-              email: email,
-            ),
-          ),
-        );
-      } else {
-        if (mounted) {
-          showSnackMessage(context, 'Email is not found! Check your email');
-        }
-      }
-    } else {
-      Navigator.pushAndRemoveUntil(
-          context,
-          MaterialPageRoute(
-            builder: (context) => const ForgotPasswordScreen(),
-          ),
-          (route) => false);
-    }
-    recoverVerifyEmailInProgress = false;
-    if (mounted) {
-      setState(() {});
-    }
-  }
+  final _forgotPasswordController = Get.find<ForgotPasswordController>();
 
   @override
   Widget build(BuildContext context) {
@@ -108,21 +69,27 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                     const SizedBox(height: 16),
                     SizedBox(
                       width: double.infinity,
-                      child: Visibility(
-                        visible: recoverVerifyEmailInProgress == false,
-                        replacement: const Center(
-                          child: CircularProgressIndicator(),
-                        ),
-                        child: ElevatedButton(
-                          onPressed: () {
-                            if (_formKey.currentState!.validate()) {
-                              recoverVerifyEmail(
-                                  _emailTEController.text.trim());
-                            }
-                          },
-                          child: const Icon(Icons.arrow_circle_right_outlined),
-                        ),
-                      ),
+                      child: GetBuilder<ForgotPasswordController>(
+                          builder: (forgotPasswordController) {
+                        return Visibility(
+                          visible: forgotPasswordController
+                                  .recoverVerifyEmailInProgress ==
+                              false,
+                          replacement: const Center(
+                            child: CircularProgressIndicator(),
+                          ),
+                          child: ElevatedButton(
+                            onPressed: () async {
+                              if (_formKey.currentState!.validate()) {
+                                recoverVerifyEmail(
+                                    _emailTEController.text.trim());
+                              }
+                            },
+                            child:
+                                const Icon(Icons.arrow_circle_right_outlined),
+                          ),
+                        );
+                      }),
                     ),
                     const SizedBox(height: 48),
                     Row(
@@ -166,6 +133,20 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     const emailRegex =
         r"^[a-zA-Z0-9.a-zA-Z0-9.!#$%&'*+-/=?^_`{|}~]+@[a-zA-Z0-9]+\.[a-zA-Z]+";
     return RegExp(emailRegex).hasMatch(input);
+  }
+
+  Future<void> recoverVerifyEmail(String email) async {
+    var response = await _forgotPasswordController
+        .recoverVerifyEmail(_emailTEController.text.trim());
+    if (response) {
+      Get.to(PinVerificationScreen(email: _emailTEController.text.trim()));
+    } else {
+      Get.snackbar(
+        'Hello',
+        'Email not found! Check your email.',
+        snackPosition: SnackPosition.BOTTOM,
+      );
+    }
   }
 
   @override

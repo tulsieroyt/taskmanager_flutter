@@ -26,9 +26,8 @@ class NetworkCaller {
           jsonResponse: jsonDecode(response.body),
           statusCode: 200,
         );
-      } else if(response.statusCode == 401){
-
-        if(isLogin == false) {
+      } else if (response.statusCode == 401) {
+        if (isLogin == false) {
           backToLogin();
         }
         return NetworkResponse(
@@ -51,13 +50,10 @@ class NetworkCaller {
     }
   }
 
-
-
   Future<NetworkResponse> getRequest(String url) async {
     try {
       log(url);
-      final Response response =
-      await get(Uri.parse(url),  headers: {
+      final Response response = await get(Uri.parse(url), headers: {
         'Content-type': 'Application/json',
         'token': AuthController.token.toString(),
       });
@@ -69,8 +65,9 @@ class NetworkCaller {
           jsonResponse: jsonDecode(response.body),
           statusCode: 200,
         );
-      } else if(response.statusCode == 401){
-          backToLogin();
+
+      } else if (response.statusCode == 401) {
+        backToLogin();
         return NetworkResponse(
           isSuccess: false,
           statusCode: response.statusCode,
@@ -89,9 +86,10 @@ class NetworkCaller {
         errorMessage: e.toString(),
       );
     }
+
   }
 
-  Future<void> backToLogin() async{
+  Future<void> backToLogin() async {
     await AuthController.clearAuthData();
     Navigator.pushAndRemoveUntil(
         TaskManager.navigatorKey.currentContext!,

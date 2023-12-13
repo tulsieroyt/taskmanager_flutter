@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:taskmanager_flutter/data/modals/task.dart';
-import 'package:taskmanager_flutter/data/network_caller/network_caller.dart';
-import 'package:taskmanager_flutter/data/utility/urls.dart';
+import 'package:taskmanager_flutter/ui/controllers/task_item_card_controller.dart';
 
 //todo-1 : delete Task API integration
 //todo-1 : completed
@@ -28,11 +28,13 @@ class TaskItemCard extends StatefulWidget {
 }
 
 class _TaskItemCardState extends State<TaskItemCard> {
+  final _taskItemCardController = Get.find<TaskItemCardController>();
+
   Future<void> updateTaskStatus(String status) async {
     widget.showProgress(true);
-    final response = await NetworkCaller()
-        .getRequest(Urls.updateTaskStatus(widget.task.sId ?? '', status));
-    if (response.isSuccess) {
+    final response = await _taskItemCardController.updateTaskStatus(
+        widget.task.sId ?? '', status);
+    if (response) {
       widget.onStatusChange();
     }
     widget.showProgress(false);
@@ -40,9 +42,9 @@ class _TaskItemCardState extends State<TaskItemCard> {
 
   Future<void> deleteTask() async {
     widget.showProgress(true);
-    final response = await NetworkCaller()
-        .getRequest(Urls.deleteTask(widget.task.sId ?? ''));
-    if (response.isSuccess) {
+    final response =
+        await _taskItemCardController.deleteTask(widget.task.sId ?? '');
+    if (response) {
       widget.onStatusChange();
     }
     widget.showProgress(false);
@@ -126,7 +128,7 @@ class _TaskItemCardState extends State<TaskItemCard> {
             title: Text(e.name),
             onTap: () {
               updateTaskStatus(e.name);
-              Navigator.pop(context);
+              Get.back();
             },
           ),
         )
@@ -146,7 +148,7 @@ class _TaskItemCardState extends State<TaskItemCard> {
               children: [
                 TextButton(
                   onPressed: () {
-                    Navigator.pop(context);
+                    Get.back();
                   },
                   child: const Text(
                     'Cancel',

@@ -1,9 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:taskmanager_flutter/data/modals/user_model.dart';
-import 'package:taskmanager_flutter/data/network_caller/network_caller.dart';
-import 'package:taskmanager_flutter/data/network_caller/network_response.dart';
-import 'package:taskmanager_flutter/data/utility/urls.dart';
-import 'package:taskmanager_flutter/ui/controllers/auth_controller.dart';
+import 'package:get/get.dart';
+import 'package:taskmanager_flutter/ui/controllers/login_controller.dart';
 import 'package:taskmanager_flutter/ui/screens/forgot_password_screen.dart';
 import 'package:taskmanager_flutter/ui/screens/main_bottom_nav_screen.dart';
 import 'package:taskmanager_flutter/ui/screens/sign_up_screen.dart';
@@ -21,7 +18,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController _emailTEController = TextEditingController();
   final TextEditingController _passwordTEController = TextEditingController();
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
-  bool _loginInProgress = false;
+  final _loginController = Get.find<LoginController>();
 
   @override
   Widget build(BuildContext context) {
@@ -78,15 +75,20 @@ class _LoginScreenState extends State<LoginScreen> {
                     const SizedBox(height: 16),
                     SizedBox(
                       width: double.infinity,
-                      child: Visibility(
-                        visible: _loginInProgress == false,
-                        replacement: const Center(
-                          child: CircularProgressIndicator(),
-                        ),
-                        child: ElevatedButton(
-                          onPressed: login,
-                          child: const Icon(Icons.arrow_circle_right_outlined),
-                        ),
+                      child: GetBuilder<LoginController>(
+                        builder: (loginController) {
+                          return Visibility(
+                            visible: loginController.loginInProgress == false,
+                            replacement: const Center(
+                              child: CircularProgressIndicator(),
+                            ),
+                            child: ElevatedButton(
+                              onPressed: login,
+                              child:
+                                  const Icon(Icons.arrow_circle_right_outlined),
+                            ),
+                          );
+                        },
                       ),
                     ),
                     const SizedBox(height: 48),
@@ -147,42 +149,13 @@ class _LoginScreenState extends State<LoginScreen> {
     if (!_formKey.currentState!.validate()) {
       return;
     }
-    _loginInProgress = true;
-    if (mounted) {
-      setState(() {});
-    }
-    NetworkResponse response = await NetworkCaller().postRequest(Urls.login,
-        body: {
-          'email': _emailTEController.text.trim(),
-          'password': _passwordTEController.text,
-        },
-        isLogin: true);
-    _loginInProgress = false;
-    if (mounted) {
-      setState(() {});
-    }
-    if (response.isSuccess) {
-      await AuthController.saveUserInformation(
-        response.jsonResponse['token'],
-        UserModel.fromJson(response.jsonResponse['data']),
-      );
-      if (mounted) {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => const MainBottomNavScreen(),
-          ),
-        );
-      }
+    final response = await _loginController.login(
+        _emailTEController.text.trim(), _passwordTEController.text);
+    if (response) {
+      Get.to(const MainBottomNavScreen());
     } else {
-      if (response.statusCode == 401) {
-        if (mounted) {
-          showSnackMessage(context, 'Please check email/password');
-        }
-      } else {
-        if (mounted) {
-          showSnackMessage(context, 'Log in failed. Try again');
-        }
+      if (mounted) {
+        showSnackMessage(context, _loginController.failedMessage);
       }
     }
   }
